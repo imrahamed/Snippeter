@@ -14,6 +14,8 @@ export const CLEAR_STATE = "CLEAR_STATE";
 export const LOAD_TAGS = "LOAD_TAGS";
 export const ADD_TAG = "ADD_TAG";
 export const SEARCH_TAG = "SEARCH_TAG";
+export const CLEAR_QUERY = "CLEAR_QUERY";
+export const UPDATE_QUERY = "UPDATE_QUERY";
 
 export const snippetData = {
     id: new Date().toISOString(),
@@ -101,13 +103,20 @@ let sampleTags = [
         name: "R"
     },
 ];
+let initialQuery = {
+    searchText: "",
+    offset: 0,
+    limit: 10,
+    isGlobalSearch: false
+}
 
 export const snippetInitialState = {
     isLoading: false,
     snippets: [],
     snippet: {},
     isEdit: false,
-    tags: []
+    tags: [],
+    query: initialQuery
 }
 
 
@@ -140,7 +149,12 @@ let deleteSnippet = (state, data) => {
 
 let loadSnippets = (state, data) => {
     ///change to data to work later
-    return { ...state, snippets: [...sampleData], isLoading: false };
+    let newData = sampleData.filter( item => { 
+        if(item.title.includes(state.query.searchText) || item.snippet.includes(state.query.searchText) || item.description.includes(state.query.searchText) ){
+            return item;
+        }  
+    });
+    return { ...state, snippets: [...newData], isLoading: false };
 }
 
 let selectSnippet = (state, data) => {
@@ -168,6 +182,10 @@ let addTag = (state, data) => {
 let searchTag = (state, data) => {
     let newTags = sampleTags.filter(item => item.name.toLowerCase().includes(data.toLowerCase()));
     return { ...state, tags: newTags };
+}
+
+let updateQuery = (state, data) => {
+    return { ...state, query: { ...state.query, ...data } };
 }
 
 export const SnippetReducer = (state, action) => {
@@ -198,6 +216,10 @@ export const SnippetReducer = (state, action) => {
             return addTag(state, action.payload);
         case SEARCH_TAG:
             return searchTag(state, action.payload);
+        case CLEAR_QUERY:
+            return { ...state, query: initialQuery };
+        case UPDATE_QUERY:
+            return updateQuery(state, action.payload);
         default:
             return state;
     }
