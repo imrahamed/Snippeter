@@ -11,12 +11,14 @@ export const LOADING = "LOADING";
 export const CLEAR_INPUT = "CLEAR_INPUT";
 export const IN_EDIT = "IN_EDIT";
 export const CLEAR_STATE = "CLEAR_STATE";
+export const LOAD_TAGS = "LOAD_TAGS";
+export const ADD_TAG = "ADD_TAG";
 
 export const snippetData = {
     id: new Date().toISOString(),
     user: "",
     snippet: "",
-    isPublic: "",
+    isPublic: false,
     title: "",
     tags: [],
     description: "",
@@ -30,7 +32,16 @@ let sampleData = [
         snippet: "Test snippet",
         isPublic: true,
         title: "Test title 1",
-        tags: [{ name: "js" }, { name: "javascript" }],
+        tags: [
+            {
+                id: "3",
+                name: "React"
+            },
+            {
+                id: "4",
+                name: "Html"
+            },
+        ],
         description: "Test",
         created_at: "2020-05-24T11:36:56.383Z"
     },
@@ -40,7 +51,10 @@ let sampleData = [
         snippet: "Test snippet2",
         isPublic: true,
         title: "Test title 2",
-        tags: [{ name: "js" }, { name: "javascript" }],
+        tags: [{
+            id: "2",
+            name: "Node"
+        }],
         description: "Test",
         created_at: "2020-05-24T11:36:56.383Z"
     },
@@ -50,17 +64,49 @@ let sampleData = [
         snippet: "Test snippet3",
         isPublic: true,
         title: "Test title 3",
-        tags: [{ name: "js" }, { name: "javascript" }],
+        tags: [{
+            id: "1",
+            name: "Java Script"
+        }],
         description: "Test",
         created_at: "2020-05-24T11:36:56.383Z"
     }
 ]
 
+
+let sampleTags = [
+    {
+        id: "1",
+        name: "Java Script"
+    },
+    {
+        id: "2",
+        name: "Node"
+    },
+    {
+        id: "3",
+        name: "React"
+    },
+    {
+        id: "4",
+        name: "Html"
+    },
+    {
+        id: "5",
+        name: "Css"
+    },
+    {
+        id: "6",
+        name: "R"
+    },
+];
+
 export const snippetInitialState = {
     isLoading: false,
     snippets: [],
     snippet: {},
-    isEdit: false
+    isEdit: false,
+    tags: []
 }
 
 
@@ -110,6 +156,15 @@ let snippetChange = (state, data) => {
     return { ...state, snippet: { ...state.snippet, ...data } };
 }
 
+let loadTags = (state, data) => {
+    return { ...state, tags: sampleTags };
+}
+
+let addTag = (state, data) => {
+    console.log({ ...state, tags: { ...state.tags, ...data } }, "her");
+    return { ...state, tags: { ...state.tags, ...data } };
+}
+
 export const SnippetReducer = (state, action) => {
     switch (action.type) {
         case ADD_SNIPPET:
@@ -132,6 +187,10 @@ export const SnippetReducer = (state, action) => {
             return { ...state, isEdit: action.payload };
         case CLEAR_STATE:
             return snippetInitialState;
+        case LOAD_TAGS:
+            return loadTags(state, action.payload);
+        case ADD_TAG:
+            return addTag(state, action.payload);
         default:
             return state;
     }

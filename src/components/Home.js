@@ -3,7 +3,7 @@ import React, { useContext, useEffect } from "react";
 // import Styled from "styled-components";
 // import { AuthContext } from "../App";
 import SideBar from "./Partials/SideBar";
-import SnippetDataContext, { LIST_SNIPPET, GET_SNIPPET_EDIT, LOADING, IN_EDIT, DELETE_SNIPPET } from "../store/reducer/SnippetContext";
+import SnippetDataContext, { LIST_SNIPPET, GET_SNIPPET_EDIT, LOADING, IN_EDIT, DELETE_SNIPPET, LOAD_TAGS } from "../store/reducer/SnippetContext";
 import ModalDataContext, { SHOW_MODAL } from "../store/reducer/ModalContex";
 
 import { Layout, Card, Col, Row, Spin, Alert } from 'antd';
@@ -24,6 +24,9 @@ export default function Home() {
     });
     snippetDispatch({
       type: LIST_SNIPPET
+    });
+    snippetDispatch({
+      type: LOAD_TAGS
     });
   }
 
@@ -54,7 +57,6 @@ export default function Home() {
 
   useEffect(() => {
     getSnippets();
-
   }, []);
 
   // const { avatar_url, name, public_repos, followers, following } = state.user
