@@ -1,7 +1,8 @@
 import React, { useContext, useState } from "react";
 import { Drawer, Form, Button, Col, Row, Input, Select, Checkbox, Alert } from 'antd';
 import ModalDataContext, { HIDE_MODAL } from "../../store/reducer/ModalContex";
-import SnippetDataContext, { SNIPPET_EDITTING, ADD_SNIPPET, CLEAR_INPUT, ADD_TAG } from "../../store/reducer/SnippetContext";
+import SnippetDataContext, { SNIPPET_EDITTING, ADD_SNIPPET, CLEAR_INPUT, ADD_TAG, SEARCH_TAG } from "../../store/reducer/SnippetContext";
+import { getUnique } from "../_helpers/helper";
 
 import { SnippetSchema } from "../YupSchema/Snippet";
 
@@ -27,12 +28,33 @@ export default function Modal() {
     }
     let handleChange = (value) => {
         setErrors({ ...errors, tags: "" });
+        let newTags = [];
         var selectedTags = snippetState.tags.filter((item) => {
-            return value.indexOf(item.id) !== -1;
+            return item.id === value;
         });
+
+        if (!selectedTags.length) {
+            snippetDispatch({
+                type: ADD_TAG,
+                payload: { id: JSON.stringify(Math.floor(Date.now()/1000) ), name: value }
+            });
+            newTags = [...snippetState.snippet.tags, { id: JSON.stringify(Math.floor(Date.now()/1000) ), name: value }];
+        } else {
+            newTags = [...snippetState.snippet.tags, ...selectedTags];
+        }
+
         snippetDispatch({
             type: SNIPPET_EDITTING,
-            payload: { tags: selectedTags }
+            payload: { tags: newTags }
+        });
+    }
+
+    let handleDeselect = (value) => {
+        setErrors({ ...errors, tags: "" });
+        let newTags = snippetState.snippet.tags.filter(item => item.id !== value);
+        snippetDispatch({
+            type: SNIPPET_EDITTING,
+            payload: { tags: newTags }
         });
     }
 
@@ -52,7 +74,14 @@ export default function Modal() {
 
     let loadTags = () => {
         let childOptions = [];
-        snippetState.tags.map(option => {
+        let newTags = [];
+        if (snippetState.snippet.tags && snippetState.snippet.tags.length) {
+            newTags = [...snippetState.tags, ...snippetState.snippet.tags];
+            newTags = getUnique(newTags, "id");
+        } else {
+            newTags = [...snippetState.tags];
+        }
+        newTags.map(option => {
             childOptions.push(<Option key={option.id} value={option.id} >{option.name}</Option>)
         });
         return childOptions;
@@ -72,7 +101,6 @@ export default function Modal() {
             });
             setErrors(newErrors);
         }
-
     }
 
     let handleDataChange = (e) => {
@@ -89,6 +117,13 @@ export default function Modal() {
             newTags = [].concat(selectedTags).map(item => item.id);
         }
         return newTags;
+    }
+
+    let handleSearch = (value) => {
+        snippetDispatch({
+            type: SEARCH_TAG,
+            payload: value
+        });
     }
 
     let { snippet, title, tags, isPublic, description } = snippetState.snippet;
@@ -153,8 +188,8 @@ export default function Modal() {
                             <Form.Item
                                 label="Tags"
                             >
-                                <Select mode="tags" style={{ width: '100%' }} value={seletedTags(tags)} name="tags"
-                                    onChange={handleChange} tokenSeparators={[',']}  >
+                                <Select mode="tags" style={{ width: '100%' }} value={seletedTags(tags)} name="tags" optionFilterProp={"children"}
+                                    onSelect={handleChange} onDeselect={handleDeselect} onSearch={handleSearch} filterOption={true} tokenSeparators={[',']}  >
                                     {loadTags()}
                                 </Select>
                                 {errors.tags && errors.tags.length ? <Alert message={errors.tags} type="error" style={{ marginTop: "5px" }} /> : null}
@@ -167,5 +202,3 @@ export default function Modal() {
     )
 }
 
-
-//defaultValue={['a10', 'c12']}

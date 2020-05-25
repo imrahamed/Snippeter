@@ -13,6 +13,7 @@ export const IN_EDIT = "IN_EDIT";
 export const CLEAR_STATE = "CLEAR_STATE";
 export const LOAD_TAGS = "LOAD_TAGS";
 export const ADD_TAG = "ADD_TAG";
+export const SEARCH_TAG = "SEARCH_TAG";
 
 export const snippetData = {
     id: new Date().toISOString(),
@@ -161,8 +162,12 @@ let loadTags = (state, data) => {
 }
 
 let addTag = (state, data) => {
-    console.log({ ...state, tags: { ...state.tags, ...data } }, "her");
-    return { ...state, tags: { ...state.tags, ...data } };
+    return { ...state, tags: [...state.tags].concat(data) };
+}
+
+let searchTag = (state, data) => {
+    let newTags = sampleTags.filter(item => item.name.toLowerCase().includes(data.toLowerCase()));
+    return { ...state, tags: newTags };
 }
 
 export const SnippetReducer = (state, action) => {
@@ -191,6 +196,8 @@ export const SnippetReducer = (state, action) => {
             return loadTags(state, action.payload);
         case ADD_TAG:
             return addTag(state, action.payload);
+        case SEARCH_TAG:
+            return searchTag(state, action.payload);
         default:
             return state;
     }
