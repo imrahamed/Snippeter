@@ -5,6 +5,7 @@ import SnippetDataContext, { SNIPPET_EDITTING, ADD_SNIPPET, CLEAR_INPUT, ADD_TAG
 import { getUnique } from "../_helpers/helper";
 
 import { SnippetSchema } from "../YupSchema/Snippet";
+import { addTags, getTags, updateSnippet, addSnippet } from "../../services/Snippet";
 
 const { Option } = Select;
 
@@ -26,23 +27,27 @@ export default function Modal() {
         });
         clearInput();
     }
-    let handleChange = (value) => {
+    let handleChange = async (value) => {
         setErrors({ ...errors, tags: "" });
         let newTags = [];
         var selectedTags = snippetState.tags.filter((item) => {
-            return item.id === value;
+            return item._id === value;
         });
 
         if (!selectedTags.length) {
-            snippetDispatch({
-                type: ADD_TAG,
-                payload: { id: JSON.stringify(Math.floor(Date.now()/1000) ), name: value }
-            });
-            newTags = [...snippetState.snippet.tags, { id: JSON.stringify(Math.floor(Date.now()/1000) ), name: value }];
+            try {
+                let newTag = await addTags(value);
+                snippetDispatch({
+                    type: ADD_TAG,
+                    payload: { ...newTag.data }
+                });
+                newTags = [...snippetState.snippet.tags, { ...newTag.data }];
+            } catch (e) {
+                newTags = [...snippetState.snippet.tags];
+            }
         } else {
             newTags = [...snippetState.snippet.tags, ...selectedTags];
         }
-
         snippetDispatch({
             type: SNIPPET_EDITTING,
             payload: { tags: newTags }
@@ -51,7 +56,7 @@ export default function Modal() {
 
     let handleDeselect = (value) => {
         setErrors({ ...errors, tags: "" });
-        let newTags = snippetState.snippet.tags.filter(item => item.id !== value);
+        let newTags = snippetState.snippet.tags.filter(item => item._id !== value);
         snippetDispatch({
             type: SNIPPET_EDITTING,
             payload: { tags: newTags }
@@ -75,23 +80,32 @@ export default function Modal() {
     let loadTags = () => {
         let childOptions = [];
         let newTags = [];
+
         if (snippetState.snippet.tags && snippetState.snippet.tags.length) {
             newTags = [...snippetState.tags, ...snippetState.snippet.tags];
-            newTags = getUnique(newTags, "id");
+            newTags = getUnique(newTags, "_id");
         } else {
             newTags = [...snippetState.tags];
         }
         newTags.map(option => {
-            childOptions.push(<Option key={option.id} value={option.id} >{option.name}</Option>)
+            childOptions.push(<Option key={option._id} value={option._id} >{option.name}</Option>)
         });
         return childOptions;
     }
 
     let addSippet = async () => {
+
+        let newSnippet;
         try {
             await SnippetSchema.validate(snippetState.snippet, { abortEarly: false });
+            if (snippetState.isEdit) {
+                newSnippet = await updateSnippet(snippetState.snippet, snippetState.snippet._id);
+            } else {
+                newSnippet = await addSnippet(snippetState.snippet);
+            }
             snippetDispatch({
-                type: ADD_SNIPPET
+                type: ADD_SNIPPET,
+                payload: newSnippet
             });
             onClose();
         } catch (errors) {
@@ -114,15 +128,16 @@ export default function Modal() {
     let seletedTags = (selectedTags) => {
         let newTags = [];
         if (selectedTags) {
-            newTags = [].concat(selectedTags).map(item => item.id);
+            newTags = [].concat(selectedTags).map(item => item._id);
         }
         return newTags;
     }
 
-    let handleSearch = (value) => {
+    let handleSearch = async (value) => {
+        let searchedTags = await getTags({ searchText: value });
         snippetDispatch({
             type: SEARCH_TAG,
-            payload: value
+            payload: searchedTags
         });
     }
 
@@ -189,7 +204,7 @@ export default function Modal() {
                                 label="Tags"
                             >
                                 <Select mode="tags" style={{ width: '100%' }} value={seletedTags(tags)} name="tags" optionFilterProp={"children"}
-                                    onSelect={handleChange} onDeselect={handleDeselect} onSearch={handleSearch} filterOption={true} tokenSeparators={[',']}  >
+                                    onSelect={handleChange} onDeselect={handleDeselect} filterOption={true} tokenSeparators={[',']}  >
                                     {loadTags()}
                                 </Select>
                                 {errors.tags && errors.tags.length ? <Alert message={errors.tags} type="error" style={{ marginTop: "5px" }} /> : null}

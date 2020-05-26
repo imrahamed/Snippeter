@@ -18,7 +18,7 @@ export const CLEAR_QUERY = "CLEAR_QUERY";
 export const UPDATE_QUERY = "UPDATE_QUERY";
 
 export const snippetData = {
-    id: new Date().toISOString(),
+    id: "",
     user: "",
     snippet: "",
     isPublic: false,
@@ -28,81 +28,6 @@ export const snippetData = {
     created_at: ""
 }
 
-let sampleData = [
-    {
-        id: 1,
-        user: 2,
-        snippet: "Test snippet",
-        isPublic: true,
-        title: "Test title 1",
-        tags: [
-            {
-                id: "3",
-                name: "React"
-            },
-            {
-                id: "4",
-                name: "Html"
-            },
-        ],
-        description: "Test",
-        created_at: "2020-05-24T11:36:56.383Z"
-    },
-    {
-        id: 2,
-        user: 2,
-        snippet: "Test snippet2",
-        isPublic: true,
-        title: "Test title 2",
-        tags: [{
-            id: "2",
-            name: "Node"
-        }],
-        description: "Test",
-        created_at: "2020-05-24T11:36:56.383Z"
-    },
-    {
-        id: 3,
-        user: 2,
-        snippet: "Test snippet3",
-        isPublic: true,
-        title: "Test title 3",
-        tags: [{
-            id: "1",
-            name: "Java Script"
-        }],
-        description: "Test",
-        created_at: "2020-05-24T11:36:56.383Z"
-    }
-]
-
-
-let sampleTags = [
-    {
-        id: "1",
-        name: "Java Script"
-    },
-    {
-        id: "2",
-        name: "Node"
-    },
-    {
-        id: "3",
-        name: "React"
-    },
-    {
-        id: "4",
-        name: "Html"
-    },
-    {
-        id: "5",
-        name: "Css"
-    },
-    {
-        id: "6",
-        name: "R"
-    },
-];
 let initialQuery = {
     searchText: "",
     offset: 0,
@@ -121,15 +46,15 @@ export const snippetInitialState = {
 
 
 
-let addSnippet = (state) => {
+let addSnippet = (state, data) => {
     let newSnippets = [...state.snippets];
     if (state.isEdit) {
-        let indexToUpdate = newSnippets.findIndex(item => item.id === state.snippet.id);
+        let indexToUpdate = newSnippets.findIndex(item => item._id === data._id);
         if (indexToUpdate !== -1) {
-            newSnippets[indexToUpdate] = state.snippet;
+            newSnippets[indexToUpdate] = data;
         }
     } else {
-        newSnippets = [...newSnippets, state.snippet];
+        newSnippets = [...newSnippets, data];
     }
     return { ...state, snippets: newSnippets, snippet: {}, isLoading: false };
 }
@@ -144,17 +69,11 @@ let updateSnippet = (state, data) => {
 }
 
 let deleteSnippet = (state, data) => {
-    return { ...state, snippets: state.snippets.filter(item => item.id !== data.id), isLoading: false }
+    return { ...state, snippets: state.snippets.filter(item => item._id !== data), isLoading: false }
 }
 
 let loadSnippets = (state, data) => {
-    ///change to data to work later
-    let newData = sampleData.filter( item => { 
-        if(item.title.includes(state.query.searchText) || item.snippet.includes(state.query.searchText) || item.description.includes(state.query.searchText) ){
-            return item;
-        }  
-    });
-    return { ...state, snippets: [...newData], isLoading: false };
+    return { ...state, snippets: [...data], isLoading: false };
 }
 
 let selectSnippet = (state, data) => {
@@ -172,7 +91,7 @@ let snippetChange = (state, data) => {
 }
 
 let loadTags = (state, data) => {
-    return { ...state, tags: sampleTags };
+    return { ...state, tags: data };
 }
 
 let addTag = (state, data) => {
@@ -180,8 +99,7 @@ let addTag = (state, data) => {
 }
 
 let searchTag = (state, data) => {
-    let newTags = sampleTags.filter(item => item.name.toLowerCase().includes(data.toLowerCase()));
-    return { ...state, tags: newTags };
+    return { ...state, tags: data };
 }
 
 let updateQuery = (state, data) => {
@@ -191,15 +109,15 @@ let updateQuery = (state, data) => {
 export const SnippetReducer = (state, action) => {
     switch (action.type) {
         case ADD_SNIPPET:
-            return addSnippet(state);
+            return addSnippet(state, action.payload.data);
         case UPDATE_SNIPPET:
             return updateSnippet(state, action.payload);
         case LOADING:
             return { ...state, isLoading: true };
         case DELETE_SNIPPET:
-            return deleteSnippet(state, action.payload);
+            return deleteSnippet(state, action.payload.data);
         case LIST_SNIPPET:
-            return loadSnippets(state, action.payload);
+            return loadSnippets(state, action.payload.data);
         case GET_SNIPPET_EDIT:
             return selectSnippet(state, action.payload);
         case SNIPPET_EDITTING:
@@ -211,7 +129,7 @@ export const SnippetReducer = (state, action) => {
         case CLEAR_STATE:
             return snippetInitialState;
         case LOAD_TAGS:
-            return loadTags(state, action.payload);
+            return loadTags(state, action.payload.data);
         case ADD_TAG:
             return addTag(state, action.payload);
         case SEARCH_TAG:

@@ -10,6 +10,7 @@ import { Layout, Card, Col, Row, Spin, Alert } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { removeExtra } from "./_helpers/helper";
 import Modal from "./Partials/Modal";
+import { getAllSnippets, getTags, deleteSnippetsById } from "../services/Snippet";
 
 const { Content } = Layout;
 
@@ -18,16 +19,27 @@ export default function Home() {
   const { snippetState, snippetDispatch } = useContext(SnippetDataContext);
   const { modalDispatch } = useContext(ModalDataContext);
 
-  let getSnippets = () => {
+  let getSnippets = async () => {
     snippetDispatch({
       type: LOADING
     });
-    snippetDispatch({
-      type: LIST_SNIPPET
-    });
-    snippetDispatch({
-      type: LOAD_TAGS
-    });
+    try {
+      const snippets = await getAllSnippets();
+      const tags = await getTags();
+      snippetDispatch({
+        type: LIST_SNIPPET,
+        payload: snippets
+      });
+      snippetDispatch({
+        type: LOAD_TAGS,
+        payload: tags
+      });
+      console.log(snippets, tags)
+    } catch (e) {
+      console.log(e)
+    }
+
+
   }
 
   let openModal = (snippet) => {
@@ -48,11 +60,12 @@ export default function Home() {
 
   }
 
-  let deleteSnippet = (snippet) => {
+  let deleteSnippet = async (snippet) => {
+    let deletedSnippet = await deleteSnippetsById(snippet._id);
     snippetDispatch({
       type: DELETE_SNIPPET,
-      payload: snippet
-    })
+      payload: deletedSnippet
+    });
   }
 
   useEffect(() => {
