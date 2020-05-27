@@ -1,8 +1,8 @@
 import React, { useContext, useState } from "react";
-import { Drawer, Form, Button, Col, Row, Input, Select, Checkbox, Alert } from 'antd';
+import { Drawer, Form, Button, Col, Row, Input, Select, Checkbox, Alert, AutoComplete, Tag } from 'antd';
 import ModalDataContext, { HIDE_MODAL } from "../../store/reducer/ModalContex";
-import SnippetDataContext, { SNIPPET_EDITTING, ADD_SNIPPET, CLEAR_INPUT, ADD_TAG, SEARCH_TAG } from "../../store/reducer/SnippetContext";
-import { getUnique } from "../_helpers/helper";
+import SnippetDataContext, { SNIPPET_EDITTING, ADD_SNIPPET, CLEAR_INPUT, ADD_TAG, TAGS_LOADING, SEARCH_TAG } from "../../store/reducer/SnippetContext";
+import { getUnique, filterArray } from "../_helpers/helper";
 
 import { SnippetSchema } from "../YupSchema/Snippet";
 import { addTags, getTags, updateSnippet, addSnippet } from "../../services/Snippet";
@@ -21,42 +21,18 @@ export default function Modal() {
     const { modalState, modalDispatch } = useContext(ModalDataContext);
     const { snippetState, snippetDispatch } = useContext(SnippetDataContext);
     let [errors, setErrors] = useState(initialErros);
+    let [tagName, setTagName] = useState("");
     let onClose = () => {
         modalDispatch({
             type: HIDE_MODAL
         });
+        setTagName("");
         clearInput();
-    }
-    let handleChange = async (value) => {
-        setErrors({ ...errors, tags: "" });
-        let newTags = [];
-        var selectedTags = snippetState.tags.filter((item) => {
-            return item._id === value;
-        });
-
-        if (!selectedTags.length) {
-            try {
-                let newTag = await addTags(value);
-                snippetDispatch({
-                    type: ADD_TAG,
-                    payload: { ...newTag.data }
-                });
-                newTags = [...snippetState.snippet.tags, { ...newTag.data }];
-            } catch (e) {
-                newTags = [...snippetState.snippet.tags];
-            }
-        } else {
-            newTags = [...snippetState.snippet.tags, ...selectedTags];
-        }
-        snippetDispatch({
-            type: SNIPPET_EDITTING,
-            payload: { tags: newTags }
-        });
     }
 
     let handleDeselect = (value) => {
         setErrors({ ...errors, tags: "" });
-        let newTags = snippetState.snippet.tags.filter(item => item._id !== value);
+        let newTags = snippetState.snippet.tags.filter(item => item._id !== value._id);
         snippetDispatch({
             type: SNIPPET_EDITTING,
             payload: { tags: newTags }
@@ -80,12 +56,10 @@ export default function Modal() {
     let loadTags = () => {
         let childOptions = [];
         let newTags = [];
-
-        if (snippetState.snippet.tags && snippetState.snippet.tags.length) {
-            newTags = [...snippetState.tags, ...snippetState.snippet.tags];
-            newTags = getUnique(newTags, "_id");
+        if (snippetState.snippet.tags) {
+            newTags = filterArray(snippetState.tags, snippetState.snippet.tags)
         } else {
-            newTags = [...snippetState.tags];
+            newTags = snippetState.tags;
         }
         newTags.map(option => {
             childOptions.push(<Option key={option._id} value={option._id} >{option.name}</Option>)
@@ -125,15 +99,8 @@ export default function Modal() {
         });
     }
 
-    let seletedTags = (selectedTags) => {
-        let newTags = [];
-        if (selectedTags) {
-            newTags = [].concat(selectedTags).map(item => item._id);
-        }
-        return newTags;
-    }
-
     let handleSearch = async (value) => {
+        setTagName(value);
         let searchedTags = await getTags({ searchText: value });
         snippetDispatch({
             type: SEARCH_TAG,
@@ -141,7 +108,72 @@ export default function Modal() {
         });
     }
 
-    let { snippet, title, tags, isPublic, description } = snippetState.snippet;
+    let removeTag = (e, tag) => {
+        e.preventDefault();
+        handleDeselect(tag);
+    }
+
+    let listTags = () => {
+        return (snippetState.snippet.tags && snippetState.snippet.tags.map(tag => {
+            return (<Tag key={tag._id} closable onClose={(e) => removeTag(e, tag)} color="green"> {tag.name}</Tag>)
+        }));
+    }
+
+    let handleSelect = (value) => {
+        setTagName(value);
+        setErrors({ ...errors, tags: "" });
+        let newTags = [];
+        var selectedTags = snippetState.tags.filter((item) => {
+            return item._id === value;
+        }) || [];
+        newTags = [...snippetState.snippet.tags, ...selectedTags];
+        newTags = getUnique(newTags, "_id");
+        snippetDispatch({
+            type: SNIPPET_EDITTING,
+            payload: { tags: newTags }
+        });
+        setTagName("");
+    }
+
+    let handleAddTag = async (e) => {
+        let newTagValue = e.target.value;
+        let eventKey = e.keyCode;
+        if (!newTagValue.trim().length || eventKey !== 13) {
+            return;
+        }
+        let findData = snippetState.tags.filter(tag => {
+            let newRegex = new RegExp("\\b" + newTagValue + "\\b", "ig");
+            return newRegex.test(tag.name);
+        });
+        if (!findData.length && !snippetState.tagSaving) {
+            snippetDispatch({
+                type: TAGS_LOADING
+            });
+            try {
+                let newTag = await addTags(newTagValue);
+                snippetDispatch({
+                    type: ADD_TAG,
+                    payload: newTag
+                });
+                let newTags = [...snippetState.snippet.tags, { ...newTag.data }];
+                snippetDispatch({
+                    type: SNIPPET_EDITTING,
+                    payload: { tags: newTags }
+                });
+                setTagName("");
+                let searchedTags = await getTags();
+                snippetDispatch({
+                    type: SEARCH_TAG,
+                    payload: searchedTags
+                });
+            } catch (e) {
+                console.log(e);
+            }
+
+        }
+    }
+
+    let { snippet, title, isPublic, description } = snippetState.snippet;
     return (
         <>
             <Drawer
@@ -177,7 +209,7 @@ export default function Modal() {
                         </Col>
                         <Col span={24}>
                             <Form.Item
-                                label="snippet"
+                                label="Snippet"
                             >
                                 <Input.TextArea name="snippet" value={snippet} onChange={(e) => handleDataChange(e)} rows={6} placeholder="please enter your snippet" />
                                 {errors.snippet && errors.snippet.length ? <Alert message={errors.snippet} type="error" style={{ marginTop: "5px" }} /> : null}
@@ -199,17 +231,31 @@ export default function Modal() {
                                 {errors.isPublic && errors.isPublic.length ? <Alert message={errors.isPublic} type="error" style={{ marginTop: "5px" }} /> : null}
                             </Form.Item>
                         </Col>
+
                         <Col span={24}>
                             <Form.Item
                                 label="Tags"
                             >
-                                <Select mode="tags" style={{ width: '100%' }} value={seletedTags(tags)} name="tags" optionFilterProp={"children"}
-                                    onSelect={handleChange} onDeselect={handleDeselect} filterOption={true} tokenSeparators={[',']}  >
+                                <AutoComplete
+                                    style={{ width: "100%" }}
+                                    placeholder="Snippet Tags"
+                                    onSearch={handleSearch}
+                                    onSelect={(e) => handleSelect(e)}
+                                    value={tagName}
+                                    onKeyUp={(e) => handleAddTag(e)}
+                                >
                                     {loadTags()}
-                                </Select>
-                                {errors.tags && errors.tags.length ? <Alert message={errors.tags} type="error" style={{ marginTop: "5px" }} /> : null}
+                                </AutoComplete>
+
                             </Form.Item>
                         </Col>
+
+                        <Col span={24}>
+                            <Form.Item>
+                                {listTags()}
+                            </Form.Item>
+                        </Col>
+
                     </Row>
                 </Form>
             </Drawer>

@@ -3,7 +3,7 @@ import React, { useContext, useEffect } from "react";
 // import Styled from "styled-components";
 // import { AuthContext } from "../App";
 import SideBar from "./Partials/SideBar";
-import SnippetDataContext, { LIST_SNIPPET, GET_SNIPPET_EDIT, LOADING, IN_EDIT, DELETE_SNIPPET, LOAD_TAGS } from "../store/reducer/SnippetContext";
+import SnippetDataContext, { LIST_SNIPPET, GET_SNIPPET_EDIT, LOADING, IN_EDIT, DELETE_SNIPPET, LOAD_TAGS, ERROR_LOADING } from "../store/reducer/SnippetContext";
 import ModalDataContext, { SHOW_MODAL } from "../store/reducer/ModalContex";
 
 import { Layout, Card, Col, Row, Spin, Alert } from 'antd';
@@ -24,8 +24,8 @@ export default function Home() {
       type: LOADING
     });
     try {
-      const snippets = await getAllSnippets();
-      const tags = await getTags();
+      let snippets = await getAllSnippets();
+      let tags = await getTags();
       snippetDispatch({
         type: LIST_SNIPPET,
         payload: snippets
@@ -34,29 +34,39 @@ export default function Home() {
         type: LOAD_TAGS,
         payload: tags
       });
-      console.log(snippets, tags)
+    } catch (err) {
+      snippetDispatch({
+        type: ERROR_LOADING
+      })
+    }
+  }
+
+  let openModal = async (snippet) => {
+
+    try {
+      let tags = await getTags();
+
+      snippetDispatch({
+        type: LOAD_TAGS,
+        payload: tags
+      });
+
+      snippetDispatch({
+        type: GET_SNIPPET_EDIT,
+        payload: snippet
+      });
+
+      snippetDispatch({
+        type: IN_EDIT,
+        payload: true
+      })
+
+      modalDispatch({
+        type: SHOW_MODAL
+      });
     } catch (e) {
       console.log(e)
     }
-
-
-  }
-
-  let openModal = (snippet) => {
-
-    snippetDispatch({
-      type: GET_SNIPPET_EDIT,
-      payload: snippet
-    });
-
-    snippetDispatch({
-      type: IN_EDIT,
-      payload: true
-    })
-
-    modalDispatch({
-      type: SHOW_MODAL
-    });
 
   }
 

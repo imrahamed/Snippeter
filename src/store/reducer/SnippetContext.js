@@ -16,6 +16,9 @@ export const ADD_TAG = "ADD_TAG";
 export const SEARCH_TAG = "SEARCH_TAG";
 export const CLEAR_QUERY = "CLEAR_QUERY";
 export const UPDATE_QUERY = "UPDATE_QUERY";
+export const ERROR_LOADING = "ERROR_LOADING";
+export const TAGS_LOADING = "TAGS_LOADING";
+export const TAGS_LOADED = "TAGS_LOADED";
 
 export const snippetData = {
     id: "",
@@ -32,7 +35,8 @@ let initialQuery = {
     searchText: "",
     offset: 0,
     limit: 10,
-    isGlobalSearch: false
+    isGlobalSearch: false,
+    tags: []
 }
 
 export const snippetInitialState = {
@@ -41,7 +45,8 @@ export const snippetInitialState = {
     snippet: {},
     isEdit: false,
     tags: [],
-    query: initialQuery
+    query: initialQuery,
+    tagSaving: false
 }
 
 
@@ -95,7 +100,7 @@ let loadTags = (state, data) => {
 }
 
 let addTag = (state, data) => {
-    return { ...state, tags: [...state.tags].concat(data) };
+    return { ...state, tags: [...state.tags].concat(data), tagSaving: false };
 }
 
 let searchTag = (state, data) => {
@@ -131,13 +136,19 @@ export const SnippetReducer = (state, action) => {
         case LOAD_TAGS:
             return loadTags(state, action.payload.data);
         case ADD_TAG:
-            return addTag(state, action.payload);
+            return addTag(state, action.payload.data);
         case SEARCH_TAG:
-            return searchTag(state, action.payload);
+            return searchTag(state, action.payload.data);
         case CLEAR_QUERY:
             return { ...state, query: initialQuery };
         case UPDATE_QUERY:
             return updateQuery(state, action.payload);
+        case ERROR_LOADING:
+            return { ...state, isLoading: false }
+        case TAGS_LOADING:
+            return { ...state, tagSaving: true }
+        case TAGS_LOADED:
+            return { ...state, tagSaving: false }
         default:
             return state;
     }

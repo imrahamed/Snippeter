@@ -12,3 +12,5 @@ export const getUnique = (arr, comp) => {
         .filter((e) => arr[e]).map(e => arr[e]);
     return unique;
 }
+
+export const filterArray = (a, b) => a.filter(x => !b.filter(y => y._id === x._id).length);
